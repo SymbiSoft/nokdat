@@ -6,6 +6,11 @@
 # */# resize whole figure
 
 # Internal version 0.5.0 -  L.C.
+# This branch analyzes just one area per each segment, by summing up all pixel
+# colors and comparing results to a user-defined threshold.
+# Appears not to work if display/environment light conditions change during time.
+# A better solution should be to check surroundings of each segment for lighter
+# area to identify an "on" segment.
 
 import keycapture
 
