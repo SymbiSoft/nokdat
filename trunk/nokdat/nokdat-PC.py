@@ -4,14 +4,14 @@
 
 # Program requires needed images to be present into FOLDERNAME folder.
 # Results are stored into LOGFILENAME in same folder.
-import Image
+import Image, ImageDraw
 
 FOLDERNAME = u'C:\\temp\\lcd\\'
 LOGFILENAME = u'LCD-debug.log'
 
-TopLeftX = [ 81, 000, 000, 000, 000, 000, 000]
+TopLeftX = [ 79, 000, 000, 000, 000, 000, 000] #46, 79, 118
 TopLeftY = [ 103, 000, 000, 160, 000, 000, 000]
-HWidth = 26
+HWidth = 20
 HHeight = 5
 VWidth = HHeight
 VHeight = HWidth
@@ -48,20 +48,20 @@ def Lead0(n):
   
 
 def Start():
-  global TopLeftX, TopLeftY , HHeight, HWidth, VHehight, VWidth , offset, num, threshold, figures, segm, FOLDERNAME
+  global TopLeftX, TopLeftY , HHeight, HWidth, VHehight, VWidth , offset, num, threshold, figures, segm, FOLDERNAME,average
   
   KBLACK = 10
-  KWHITE = 65000
+  KWHITE = 16777215
   TopLeftY[6] = (TopLeftY[3] + TopLeftY[0])/2
   TopLeftY[1] = TopLeftY[0]+ HHeight
   TopLeftY[2] = TopLeftY[6]+ HHeight
   TopLeftY[4] = TopLeftY[2]
   TopLeftY[5] = TopLeftY[1]
   TopLeftX[1]=TopLeftX[0]+HWidth
-  TopLeftX[2]=TopLeftX[1]-1
+  TopLeftX[2]=TopLeftX[1]-2
   TopLeftX[3]=TopLeftX[0]
-  TopLeftX[4] = TopLeftX[0] - VWidth-1
-  TopLeftX[5] = TopLeftX[0] - VWidth
+  TopLeftX[4] = TopLeftX[0] - VWidth -2 
+  TopLeftX[5] = TopLeftX[0] - VWidth + 1
   TopLeftX[6] = TopLeftX[0] 
   
   filecount = 1
@@ -70,12 +70,15 @@ def Start():
   
   filename = FOLDERNAME +  u'LCD20080706_162757.jpg'
   img = Image.open(filename)
-  
+  img=img.convert('L')
+  img=img.convert('RGB')
   out_file = open(FOLDERNAME + LOGFILENAME,'w')
+  
+  average = [[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
  
   for n in range(1): # Loop through various figures
     for idx in range(7): # Loop through segments.
-        print idx
+        #print idx
         TotColorR = 0 # Per each segment calculate a separate sum.
         TotColorG = 0
         TotColorB = 0   
@@ -122,8 +125,10 @@ def Start():
             if TotColorR+TotColorG+TotColorB > threshold:
               colore = KWHITE
             else:
-              colore = KBLACK
+              colore = KBLACK              
             img.putpixel((x,y),colore)
+        average[idx][1]= (TotColorR+TotColorG+TotColorB) / ((Xend-Xstart)*(Yend-Ystart))
+        print "idx=",idx, ", center=",average[idx][1]
             
         #  ******** Neighbours *******   
         
@@ -136,10 +141,11 @@ def Start():
               TotColorGhl = TotColorGhl + tempG
               TotColorBhl = TotColorBhl + tempB 
               if TotColorRhl+TotColorGhl+TotColorBhl > threshold:
-                colore = KWHITE
+                colore = KWHITE-1000
               else:
-                colore = KBLACK
+                colore = KBLACK+100
               img.putpixel((x,y),colore)
+          average[idx][2]= (TotColorRhl+TotColorGhl+TotColorBhl) / ((Xend-Xstart)*(Yend-Ystart))    
           for x in range(Xstart, Xend): # Horizontal segment upper neighbour
             for y in range(Ystart-HHeight, Yend-HHeight):
               tempR, tempG, tempB =  img.getpixel((x,y))#[0]
@@ -147,11 +153,11 @@ def Start():
               TotColorGhu = TotColorGhu + tempG
               TotColorBhu = TotColorBhu + tempB 
               if TotColorRhu+TotColorGhu+TotColorBhu > threshold:
-                colore = KWHITE
+                colore = KWHITE-1000
               else:
-                colore = KBLACK
+                colore = KBLACK+100
               img.putpixel((x,y),colore)
-              
+          average[idx][0]= (TotColorRhu+TotColorGhu+TotColorBhu) / ((Xend-Xstart)*(Yend-Ystart))   
         #    *** VERTICAL **
         else: 
           for x in range(Xstart+VWidth, Xend+VWidth): # Vertical segment right neighbour
@@ -161,10 +167,11 @@ def Start():
               TotColorGvr = TotColorGvr + tempG
               TotColorBvr = TotColorBvr + tempB 
               if TotColorRvr+TotColorGvr+TotColorBvr > threshold:
-                colore = KWHITE
+                colore = KWHITE-1000
               else:
-                colore = KBLACK
+                colore = KBLACK+100
               img.putpixel((x,y),colore)
+          average[idx][2]= (TotColorRvr+TotColorGvr+TotColorBvr) / ((Xend-Xstart)*(Yend-Ystart))    
           for x in range(Xstart-VWidth, Xend-VWidth): # Vertical segment left neighbour
             for y in range(Ystart, Yend):
               tempR, tempG, tempB =  img.getpixel((x,y))#[0]
@@ -172,10 +179,11 @@ def Start():
               TotColorGvl = TotColorGvl + tempG
               TotColorBvl = TotColorBvl + tempB 
               if TotColorRvl+TotColorGvl+TotColorBvl > threshold:
-                colore = KWHITE
+                colore = KWHITE-1000
               else:
-                colore = KBLACK
+                colore = KBLACK+100
               img.putpixel((x,y),colore)
+          average[idx][0]= (TotColorRvl+TotColorGvl+TotColorBvl) / ((Xend-Xstart)*(Yend-Ystart))
         if TotColorR+TotColorG+TotColorB > threshold: # If white, then off.
         #   print "white" 
   #         if (idx == 0) or (idx == 6) or (idx == 3): # Horizontal segments
@@ -202,7 +210,45 @@ def Start():
           repr(TotColorR+TotColorG+TotColorB) +  "," + chr(9) + \
           repr(TotColorRvr+TotColorGvr+TotColorBvr)+  \
           "("+repr(TotColorR+TotColorG+TotColorB-(TotColorRvl+TotColorGvl+TotColorBvl)) + chr(9) + repr(TotColorR+TotColorG+TotColorB-(TotColorRvr+TotColorGvr+TotColorBvr)) + ")  \n")
-  #img.save(u'c:\\temp\\lcd\\output.bmp',quality=100)
-  img.show('True')
+  
+  d = ImageDraw.Draw(img)
+  for co in range(0,7):
+    print average[co], average[co][1]-average[co][0], average[co][1]-average[co][2]
+
+  print TopLeftX[0],TopLeftY[0], HWidth, VWidth
+  d.rectangle([TopLeftX[0],TopLeftY[0],TopLeftX[0]+HWidth,TopLeftY[0]+HHeight],fill=(average[0][1]/3,average[0][1]/3,average[0][1]/3))
+  d.rectangle([TopLeftX[0],TopLeftY[0]-HHeight,TopLeftX[0]+HWidth,TopLeftY[0]+HHeight-HHeight],fill=(average[0][0]/3,average[0][0]/3,average[0][0]/3))
+  d.rectangle([TopLeftX[0],TopLeftY[0]+HHeight,TopLeftX[0]+HWidth,TopLeftY[0]+HHeight+HHeight],fill=(average[0][2]/3,average[0][2]/3,average[0][2]/3))
+
+  d.rectangle([TopLeftX[1],       TopLeftY[1],TopLeftX[1]+VWidth,       TopLeftY[1]+VHeight],fill=(average[1][1]/3,average[1][1]/3,average[1][1]/3))
+  d.rectangle([TopLeftX[1]-VWidth,TopLeftY[1],TopLeftX[1]+VWidth-VWidth,TopLeftY[1]+VHeight],fill=(average[1][0]/3,average[1][0]/3,average[1][0]/3))
+  d.rectangle([TopLeftX[1]+VWidth,TopLeftY[1],TopLeftX[1]+VWidth+VWidth,TopLeftY[1]+VHeight],fill=(average[1][2]/3,average[1][2]/3,average[1][2]/3))
+
+  d.rectangle([TopLeftX[2],       TopLeftY[2],TopLeftX[2]+VWidth,       TopLeftY[2]+VHeight],fill=(average[2][1]/3,average[2][1]/3,average[2][1]/3))
+  d.rectangle([TopLeftX[2]-VWidth,TopLeftY[2],TopLeftX[2]+VWidth-VWidth,TopLeftY[2]+VHeight],fill=(average[2][0]/3,average[2][0]/3,average[2][0]/3))
+  d.rectangle([TopLeftX[2]+VWidth,TopLeftY[2],TopLeftX[2]+VWidth+VWidth,TopLeftY[2]+VHeight],fill=(average[2][2]/3,average[2][2]/3,average[2][2]/3))
+
+  d.rectangle([TopLeftX[3],TopLeftY[3],        TopLeftX[3]+HWidth,TopLeftY[3]+HHeight],        fill=(average[3][1]/3,average[3][1]/3,average[3][1]/3))
+  d.rectangle([TopLeftX[3],TopLeftY[3]-HHeight,TopLeftX[3]+HWidth,TopLeftY[3]+HHeight-HHeight],fill=(average[3][0]/3,average[3][0]/3,average[3][0]/3))
+  d.rectangle([TopLeftX[3],TopLeftY[3]+HHeight,TopLeftX[3]+HWidth,TopLeftY[3]+HHeight+HHeight],fill=(average[3][2]/3,average[3][2]/3,average[3][2]/3))
+
+  d.rectangle([TopLeftX[4],       TopLeftY[4],TopLeftX[4]+VWidth,       TopLeftY[4]+VHeight],fill=(average[4][1]/3,average[4][1]/3,average[4][1]/3))
+  d.rectangle([TopLeftX[4]-VWidth,TopLeftY[4],TopLeftX[4]+VWidth-VWidth,TopLeftY[4]+VHeight],fill=(average[4][0]/3,average[4][0]/3,average[4][0]/3))
+  d.rectangle([TopLeftX[4]+VWidth,TopLeftY[4],TopLeftX[4]+VWidth+VWidth,TopLeftY[4]+VHeight],fill=(average[4][2]/3,average[4][2]/3,average[4][2]/3))
+
+  d.rectangle([TopLeftX[5],       TopLeftY[5],TopLeftX[5]+VWidth,       TopLeftY[5]+VHeight],fill=(average[5][1]/3,average[5][1]/3,average[5][1]/3))
+  d.rectangle([TopLeftX[5]-VWidth,TopLeftY[5],TopLeftX[5]+VWidth-VWidth,TopLeftY[5]+VHeight],fill=(average[5][0]/3,average[5][0]/3,average[5][0]/3))
+  d.rectangle([TopLeftX[5]+VWidth,TopLeftY[5],TopLeftX[5]+VWidth+VWidth,TopLeftY[5]+VHeight],fill=(average[5][2]/3,average[5][2]/3,average[5][2]/3))
+
+  d.rectangle([TopLeftX[6],TopLeftY[6],        TopLeftX[6]+HWidth,TopLeftY[6]+HHeight],        fill=(average[6][1]/3,average[6][1]/3,average[6][1]/3))
+  d.rectangle([TopLeftX[6],TopLeftY[6]-HHeight,TopLeftX[6]+HWidth,TopLeftY[6]+HHeight-HHeight],fill=(average[6][0]/3,average[6][0]/3,average[6][0]/3))
+  d.rectangle([TopLeftX[6],TopLeftY[6]+HHeight,TopLeftX[6]+HWidth,TopLeftY[6]+HHeight+HHeight],fill=(average[6][2]/3,average[6][2]/3,average[6][2]/3))
+
+  img.show()
+    
 
 Start()        
+
+
+
+

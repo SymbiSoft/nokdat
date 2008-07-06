@@ -11,6 +11,7 @@ import graphics
 import e32
 import keycapture
 from key_codes import *
+import keypress
 
 
 timelaps = 10 #seconds
@@ -29,6 +30,8 @@ def cb_capture(key):
 def Reader():
    global canvas, PixThreshold, HWidth, VWidth, HHeight, VHeightm,  fg, img, threshold, over, TopLeftX, TopLeftY, filecount
    img=graphics.screenshot() # Take screenshot
+   keypress.simulate_key(EKeyDownArrow,EKeyDownArrow) # Prevent camera from going in stand-by.
+   keypress.simulate_key(EKeyUpArrow,EKeyUpArrow)
    #filenum = Lead0(filecount)
    t = repr(e32db.format_time(time.time()))
    timestamp = t[8:12] + t[5:7] + t[2:4] + "_" + t[13:15] + t[16:18] + t[19:21]
