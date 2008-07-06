@@ -1,14 +1,26 @@
-import Image, e32db
+# Nokia Data Logger - PC version
+# This program analyses images obtained by NDL started on the phone,
+# attempting to recognize LCD numbers.
 
-TopLeftX = [ 63, 65, 65,  30,  20, 20, 30]
-TopLeftY = [ 108, 75,120,124,120, 75, 105]
-HWidth = 5
-HHeight = 2
+# Program requires needed images to be present into FOLDERNAME folder.
+# Results are stored into LOGFILENAME in same folder.
+import Image
+
+FOLDERNAME = u'C:\\temp\\lcd\\'
+LOGFILENAME = u'LCD-debug.log'
+
+TopLeftX = [ 81, 000, 000, 000, 000, 000, 000]
+TopLeftY = [ 103, 000, 000, 160, 000, 000, 000]
+HWidth = 26
+HHeight = 5
 VWidth = HHeight
 VHeight = HWidth
+
 offset = 70
 num=[0,offset,2*offset,3*offset,4*offset,5*offset] 
-threshold = 1800
+
+threshold = 12000
+
 Figures=[[1,1,1,1,1,1,0], \
          [0,1,1,0,0,0,0], \
          [1,1,0,1,1,0,1], \
@@ -19,6 +31,7 @@ Figures=[[1,1,1,1,1,1,0], \
          [1,1,1,0,0,0,0], \
          [1,1,1,1,1,1,1], \
          [1,1,1,1,0,1,1]]
+         
 segm=[2,2,2,2,2,2,2]
 
 def Lead0(n):
@@ -35,7 +48,10 @@ def Lead0(n):
   
 
 def Start():
-  global TopLeftX, TopLeftY , HHeight, HWidth, VHehight, VWidth , offset, num, threshold, figures, segm
+  global TopLeftX, TopLeftY , HHeight, HWidth, VHehight, VWidth , offset, num, threshold, figures, segm, FOLDERNAME
+  
+  KBLACK = 10
+  KWHITE = 65000
   TopLeftY[6] = (TopLeftY[3] + TopLeftY[0])/2
   TopLeftY[1] = TopLeftY[0]+ HHeight
   TopLeftY[2] = TopLeftY[6]+ HHeight
@@ -47,14 +63,15 @@ def Start():
   TopLeftX[4] = TopLeftX[0] - VWidth-1
   TopLeftX[5] = TopLeftX[0] - VWidth
   TopLeftX[6] = TopLeftX[0] 
-  #VHeight = TopLeftY[6] - (TopLeftY[0]+HHeight)
   
-  filecount = 19
+  filecount = 1
   filenum = Lead0(filecount)
-  filename=(u'C:\\temp\\lcd\\LCD' + filenum + '.jpg')
+  filename=(FOLDERNAME + 'LCD' + filenum + '.jpg')
+  
+  filename = FOLDERNAME +  u'LCD20080706_162757.jpg'
   img = Image.open(filename)
   
-  out_file = open(u'c:\\temp\\lcd\\LCD-debug.log','w')
+  out_file = open(FOLDERNAME + LOGFILENAME,'w')
  
   for n in range(1): # Loop through various figures
     for idx in range(7): # Loop through segments.
@@ -83,19 +100,19 @@ def Start():
           
         # Examine a box inside the segment; values of each pixel are summed up into
         # a single value,which is the compared to a threshold to determine if
-        # the segment is on (=black=under threshold) or off (=white=over threshold).
-        if (idx == 0) or (idx == 6) or (idx == 3): # Horizontal segments
+        # the segment is on (= black = under threshold) or off (= white = over threshold).
+        
+        if (idx == 0) or (idx == 6) or (idx == 3): # ******* Horizontal segments
           Xstart = num[n]+TopLeftX[idx]
           Xend = num[n]+TopLeftX[idx]+HWidth
           Ystart = TopLeftY[idx]
           Yend = TopLeftY[idx]+HHeight   
-        else: # Vertical segments
+        else:                                      # ******* Vertical segments
           Xstart = num[n]+TopLeftX[idx]
           Xend = num[n]+TopLeftX[idx]+VWidth
           Ystart = TopLeftY[idx]
-          Yend = TopLeftY[idx]+VHeight         
-        #print "idx=",idx,":",Xstart, Ystart        
-        print num[n], TopLeftX[idx], HWidth, Xstart, Xend      
+          Yend = TopLeftY[idx]+VHeight    
+                   
         for x in range(Xstart, Xend): # sum up color of each pixel of the segment:
           for y in range(Ystart, Yend):
             tempR, tempG, tempB =  img.getpixel((x,y))#[0]
@@ -103,10 +120,14 @@ def Start():
             TotColorG = TotColorG + tempG
             TotColorB = TotColorB + tempB 
             if TotColorR+TotColorG+TotColorB > threshold:
-              colore = 65535
+              colore = KWHITE
             else:
-              colore = 0
+              colore = KBLACK
             img.putpixel((x,y),colore)
+            
+        #  ******** Neighbours *******   
+        
+        #  *** HORIZONTAL **         
         if (idx == 0) or (idx == 6) or (idx == 3): # Horizontal segments neighbours
           for x in range(Xstart, Xend): # Horizontal segment lower neighbour
             for y in range(Ystart+HHeight, Yend+HHeight):
@@ -115,9 +136,9 @@ def Start():
               TotColorGhl = TotColorGhl + tempG
               TotColorBhl = TotColorBhl + tempB 
               if TotColorRhl+TotColorGhl+TotColorBhl > threshold:
-                colore = 45535
+                colore = KWHITE
               else:
-                colore = 2000
+                colore = KBLACK
               img.putpixel((x,y),colore)
           for x in range(Xstart, Xend): # Horizontal segment upper neighbour
             for y in range(Ystart-HHeight, Yend-HHeight):
@@ -126,28 +147,35 @@ def Start():
               TotColorGhu = TotColorGhu + tempG
               TotColorBhu = TotColorBhu + tempB 
               if TotColorRhu+TotColorGhu+TotColorBhu > threshold:
-                colore = 45535
+                colore = KWHITE
               else:
-                colore = 20000
+                colore = KBLACK
               img.putpixel((x,y),colore)
-        else: # Vertical segments neighbours
+              
+        #    *** VERTICAL **
+        else: 
           for x in range(Xstart+VWidth, Xend+VWidth): # Vertical segment right neighbour
             for y in range(Ystart, Yend):
               tempR, tempG, tempB =  img.getpixel((x,y))#[0]
               TotColorRvr = TotColorRvr + tempR
               TotColorGvr = TotColorGvr + tempG
               TotColorBvr = TotColorBvr + tempB 
+              if TotColorRvr+TotColorGvr+TotColorBvr > threshold:
+                colore = KWHITE
+              else:
+                colore = KBLACK
+              img.putpixel((x,y),colore)
           for x in range(Xstart-VWidth, Xend-VWidth): # Vertical segment left neighbour
-            for y in range(Ystart-HHeight, Yend-HHeight):
+            for y in range(Ystart, Yend):
               tempR, tempG, tempB =  img.getpixel((x,y))#[0]
               TotColorRvl = TotColorRvl + tempR
               TotColorGvl = TotColorGvl + tempG
               TotColorBvl = TotColorBvl + tempB 
-            #if tempR+tempG+tempB > PixThreshold:
-              #over.point((x,y),65000)
-            #else:
-              #over.point((x,y),10000)
-        #print idx,TotColorR + TotColorG + TotColorB, threshold
+              if TotColorRvl+TotColorGvl+TotColorBvl > threshold:
+                colore = KWHITE
+              else:
+                colore = KBLACK
+              img.putpixel((x,y),colore)
         if TotColorR+TotColorG+TotColorB > threshold: # If white, then off.
         #   print "white" 
   #         if (idx == 0) or (idx == 6) or (idx == 3): # Horizontal segments
@@ -163,7 +191,7 @@ def Start():
    #          over.rectangle((Xstart,Ystart,Xstart+VWidth,Ystart+VHeight),0x000000,0x333333)            
            segm[idx]=1
         if (idx == 0) or (idx == 6) or (idx == 3):           
-          out_file.write("Up,Mid,Down " + repr(idx) + "=" + chr(9) + \
+          out_file.write("Up  "+ chr(9) +"Mid   "+ chr(9) +"Down  " + repr(idx) + "=" + chr(9) + \
           repr(TotColorRhu+TotColorGhu+TotColorBhu) + "," + chr(9) + \
           repr(TotColorR+TotColorG+TotColorB) +  "," + chr(9) + \
           repr(TotColorRhl+TotColorGhl+TotColorBhl)+ \
@@ -174,8 +202,7 @@ def Start():
           repr(TotColorR+TotColorG+TotColorB) +  "," + chr(9) + \
           repr(TotColorRvr+TotColorGvr+TotColorBvr)+  \
           "("+repr(TotColorR+TotColorG+TotColorB-(TotColorRvl+TotColorGvl+TotColorBvl)) + chr(9) + repr(TotColorR+TotColorG+TotColorB-(TotColorRvr+TotColorGvr+TotColorBvr)) + ")  \n")
-  img.save(u'c:\\temp\\lcd\\output.bmp',quality=100)
-  img.show()
-  print TopLeftX
-  print TopLeftY
+  #img.save(u'c:\\temp\\lcd\\output.bmp',quality=100)
+  img.show('True')
+
 Start()        
