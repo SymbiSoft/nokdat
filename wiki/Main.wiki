@@ -19,3 +19,8 @@ The "mental process", i.e. the "algorithm", we use to recognize LCD numbers is v
 So, how to "teach" this to a PC or a cellphone?
 
 The biggest difficulty is taking into account different brightness of the same image in different areas: this lead to having an "off segment" as dark as an "on segment" in a brighter area of the same image, thus completely confusing the software, which is not able to properly detect which segments are on and which off.
+
+So, just comparing area brightness to a predefined brightness threshold is not enough.
+I'm currently investigating how to compare the brightness of a segmento to the adiacent area: this should allow recognizing an off or on segment regardless of area brightness.
+
+Work is still in progress, and any help is appreciated...
